@@ -3,7 +3,7 @@ import "next-auth/jwt";
 
 declare module "next-auth" {
   interface Session {
-    /** Okta access token, forwarded to the .NET Core Web API. */
+    /** Auth0 access token, forwarded to the .NET Core Web API. */
     accessToken?: string;
   }
 }

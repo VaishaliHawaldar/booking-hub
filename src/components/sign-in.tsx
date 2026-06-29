@@ -83,14 +83,14 @@ export default function SignIn() {
             </p>
 
             <button
-              onClick={() => signIn("okta", { redirectTo: "/" })}
+              onClick={() => signIn("auth0", { redirectTo: "/" })}
               className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-500"
             >
-              Continue with Okta
+              Continue with Auth0
             </button>
 
             <p className="mt-4 text-center text-xs text-slate-500">
-              You&apos;ll be redirected to Okta to sign in securely.
+              You&apos;ll be redirected to Auth0 to sign in securely.
             </p>
           </div>
         </div>

@@ -14,27 +14,27 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-## Authentication (Okta + Auth.js)
+## Authentication (Auth0 + Auth.js)
 
-Sign-in uses **Auth.js (NextAuth v5)** with **Okta** as the OIDC provider. The
-"Sign in" button opens a modal that redirects to Okta; once authenticated the
+Sign-in uses **Auth.js (NextAuth v5)** with **Auth0** as the OIDC provider. The
+"Sign in" button opens a modal that redirects to Auth0; once authenticated the
 header shows the user and a "Sign out" button.
 
-### Configure Okta
+### Configure Auth0
 
-1. In the **Okta Admin Console**, create an app: **Applications → Create App
-   Integration → OIDC - OpenID Connect → Web Application**.
-2. Set the redirect URIs:
-   - **Sign-in redirect URI:** `http://localhost:3000/api/auth/callback/okta`
-   - **Sign-out redirect URI:** `http://localhost:3000`
+1. In the **Auth0 Dashboard**, create an app: **Applications → Create
+   Application → Regular Web Applications**.
+2. In the app **Settings**, set:
+   - **Allowed Callback URLs:** `http://localhost:3000/api/auth/callback/auth0`
+   - **Allowed Logout URLs:** `http://localhost:3000`
 3. Copy these into `.env.local` (see [.env.example](.env.example)):
-   - `AUTH_OKTA_ID` — the app's Client ID
-   - `AUTH_OKTA_SECRET` — the app's Client secret
-   - `AUTH_OKTA_ISSUER` — your issuer URL, e.g.
-     `https://dev-1234567.okta.com/oauth2/default`
+   - `AUTH_AUTH0_ID` — the app's Client ID
+   - `AUTH_AUTH0_SECRET` — the app's Client Secret
+   - `AUTH_AUTH0_ISSUER` — your tenant domain, e.g.
+     `https://your-tenant.us.auth0.com`
    - `AUTH_SECRET` — generate with `npx auth secret`
 
-The Okta **access token** is captured in the Auth.js session
+The Auth0 **access token** is captured in the Auth.js session
 ([src/auth.ts](src/auth.ts)) as `session.accessToken`, ready to forward as a
 `Bearer` token to the .NET Core Web API later.
 
