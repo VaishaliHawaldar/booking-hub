@@ -5,7 +5,7 @@ export default function MovieList({ movies }: { movies: Movie[] }) {
   if (movies.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-slate-700 py-16 text-center text-slate-400">
-        No movies showing in this city yet. Try another city.
+        No movies showing right now. Check back soon.
       </div>
     );
   }

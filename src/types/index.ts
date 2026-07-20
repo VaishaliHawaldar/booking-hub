@@ -6,13 +6,19 @@ export interface City {
 export interface Movie {
   id: string;
   title: string;
-  genre: string[];
+  genre: string;
   language: string;
   rating: number;
-  durationMins: number;
+  durationMinutes: number;
   releaseDate: string;
   posterUrl: string;
-  certification: string;
-  /** ids of cities where the movie is currently showing */
-  cityIds: string[];
+}
+
+export interface Showtime {
+  id: string;
+  movieId: string;
+  screen: string;
+  startTime: string;
+  basePrice: number;
+  totalSeats: number;
 }

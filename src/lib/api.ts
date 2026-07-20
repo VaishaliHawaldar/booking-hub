@@ -1,22 +1,36 @@
 import { cities } from "@/data/cities";
-import { movies } from "@/data/movies";
-import { City, Movie } from "@/types";
+import { City, Movie, Showtime } from "@/types";
 
-/**
- * Mock data access layer.
- *
- * These functions stand in for the .NET Core Web API that will replace them
- * later. Keep the signatures stable so swapping the implementation to `fetch`
- * calls is a single-file change.
- */
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5210";
 
+async function apiFetch<T>(path: string, accessToken?: string): Promise<T> {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    cache: "no-store",
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+  });
+  if (!res.ok) {
+    throw new Error(`API request to ${path} failed with status ${res.status}`);
+  }
+  return res.json();
+}
+
+// No cities endpoint is exposed by the API yet, so this stays mock for now.
 export async function getCities(): Promise<City[]> {
   return cities;
 }
 
-export async function getMovies(cityId?: string): Promise<Movie[]> {
-  if (!cityId || cityId === "all") {
-    return movies;
-  }
-  return movies.filter((movie) => movie.cityIds.includes(cityId));
+export async function getMovies(accessToken?: string): Promise<Movie[]> {
+  return apiFetch<Movie[]>("/api/Movies", accessToken);
+}
+
+export async function getMovie(id: string, accessToken?: string): Promise<Movie> {
+  return apiFetch<Movie>(`/api/Movies/${id}`, accessToken);
+}
+
+export async function getShowtimes(
+  movieId: string,
+  accessToken?: string,
+): Promise<Showtime[]> {
+  return apiFetch<Showtime[]>(`/api/Showtimes/${movieId}`, accessToken);
 }

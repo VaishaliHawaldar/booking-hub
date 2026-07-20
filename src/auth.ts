@@ -9,13 +9,21 @@ import Auth0 from "next-auth/providers/auth0";
  *   - AUTH_AUTH0_ID       Auth0 application client ID
  *   - AUTH_AUTH0_SECRET   Auth0 application client secret
  *   - AUTH_AUTH0_ISSUER   Auth0 issuer URL, e.g. https://your-tenant.us.auth0.com
+ *   - AUTH_AUTH0_AUDIENCE Auth0 API identifier; makes Auth0 issue a JWT access
+ *                         token for the .NET Core Web API
  */
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  debug: true,
   providers: [
     Auth0({
       clientId: process.env.AUTH_AUTH0_ID,
       clientSecret: process.env.AUTH_AUTH0_SECRET,
       issuer: process.env.AUTH_AUTH0_ISSUER,
+      authorization: {
+        params: {
+          audience: process.env.AUTH_AUTH0_AUDIENCE,
+        },
+      },
     }),
   ],
   callbacks: {

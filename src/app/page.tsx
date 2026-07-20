@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { auth } from "@/auth";
 import CityFilter from "@/components/city-filter";
 import MovieList from "@/components/movie-list";
 import SignIn from "@/components/sign-in";
@@ -12,10 +13,12 @@ export default async function Home({ searchParams }: HomeProps) {
   const { city } = await searchParams;
   const selectedCityId = city ?? "all";
 
+  const session = await auth();
   const [cities, movies] = await Promise.all([
     getCities(),
-    getMovies(selectedCityId),
+    getMovies(session?.accessToken).catch(() => []),
   ]);
+  const signedOutNoMovies = !session?.accessToken && movies.length === 0;
 
   const cityName =
     cities.find((c) => c.id === selectedCityId)?.name ?? "All cities";
@@ -43,11 +46,17 @@ export default async function Home({ searchParams }: HomeProps) {
         <h2 className="mb-4 text-lg font-semibold text-slate-200">
           Movies <span className="text-slate-500">({movies.length})</span>
         </h2>
-        <MovieList movies={movies} />
+        {signedOutNoMovies ? (
+          <div className="rounded-xl border border-dashed border-slate-700 py-16 text-center text-slate-400">
+            Sign in to browse movies.
+          </div>
+        ) : (
+          <MovieList movies={movies} />
+        )}
       </section>
 
       <footer className="mt-12 border-t border-slate-800 pt-6 text-center text-xs text-slate-500">
-        Mock data for now · .NET Core Web API coming soon
+        Powered by the BookingHub API
       </footer>
     </main>
   );
