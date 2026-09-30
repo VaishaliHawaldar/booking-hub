@@ -10,6 +10,8 @@ const MAX_BYTES = 5 * 1024 * 1024; // keep in sync with AVATAR_MAX_BYTES in lib/
 interface ProfileFormProps {
   profile: UserProfile;
   cities: City[];
+  /** Signed S3 URL for displaying profile.avatarUrl (the bucket may be private). */
+  avatarDisplayUrl: string | null;
   /** Auth0 picture, shown until the user uploads their own. */
   fallbackImage: string | null;
 }
@@ -46,12 +48,19 @@ async function uploadAvatar(file: File): Promise<string> {
 const inputClass =
   "w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-sm text-slate-100 outline-none transition focus:border-indigo-500 disabled:opacity-60";
 
-export default function ProfileForm({ profile, cities, fallbackImage }: ProfileFormProps) {
+export default function ProfileForm({
+  profile,
+  cities,
+  avatarDisplayUrl,
+  fallbackImage,
+}: ProfileFormProps) {
   const [state, formAction, isSaving] = useActionState<ProfileFormState, FormData>(
     saveProfile,
     { status: "idle" },
   );
+  // avatarUrl is what gets saved; displayUrl is what the <img> loads.
   const [avatarUrl, setAvatarUrl] = useState<string | null>(profile.avatarUrl);
+  const [displayUrl, setDisplayUrl] = useState<string | null>(avatarDisplayUrl);
   const [preview, setPreview] = useState<string | null>(null);
   const [upload, setUpload] = useState<UploadState>({ status: "idle" });
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -81,6 +90,7 @@ export default function ProfileForm({ profile, cities, fallbackImage }: ProfileF
     setUpload({ status: "uploading" });
     try {
       setAvatarUrl(await uploadAvatar(file));
+      setDisplayUrl(null); // the local preview now stands in for the new image
       setUpload({ status: "idle" });
     } catch (err) {
       setPreview(null);
@@ -94,11 +104,12 @@ export default function ProfileForm({ profile, cities, fallbackImage }: ProfileF
   function handleRemove() {
     setPreview(null);
     setAvatarUrl(null);
+    setDisplayUrl(null);
     setUpload({ status: "idle" });
   }
 
   const isUploading = upload.status === "uploading";
-  const shownImage = preview ?? avatarUrl ?? fallbackImage;
+  const shownImage = preview ?? displayUrl ?? fallbackImage;
   const initials = profile.name
     .split(/\s+/)
     .map((part) => part[0])
@@ -119,7 +130,13 @@ export default function ProfileForm({ profile, cities, fallbackImage }: ProfileF
           {shownImage ? (
             // Plain <img>: sources span S3, Auth0/Gravatar and local blob: previews.
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={shownImage} alt="Profile picture" className="h-full w-full object-cover" />
+            <img
+              src={shownImage}
+              alt="Profile picture"
+              // e.g. the S3 object was deleted or the signed URL expired
+              onError={() => setDisplayUrl(null)}
+              className="h-full w-full object-cover"
+            />
           ) : (
             <span className="flex h-full w-full items-center justify-center text-2xl font-semibold text-slate-300">
               {initials || "?"}

@@ -1,6 +1,11 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import {
+  GetObjectCommand,
+  ListObjectsV2Command,
+  PutObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 /**
@@ -11,7 +16,8 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
  * Required environment variables:
  *   - AWS_REGION             bucket region, e.g. ap-south-1
  *   - AWS_S3_BUCKET          bucket name
- *   - AWS_ACCESS_KEY_ID      IAM credentials with s3:PutObject on the bucket
+ *   - AWS_ACCESS_KEY_ID      IAM credentials with s3:PutObject/s3:GetObject on
+ *                            avatars/* and s3:ListBucket on the bucket
  *   - AWS_SECRET_ACCESS_KEY  (picked up automatically by the AWS SDK)
  * Optional:
  *   - AWS_S3_PUBLIC_URL      base URL objects are served from (e.g. a
@@ -30,6 +36,7 @@ export type AvatarContentType = keyof typeof AVATAR_CONTENT_TYPES;
 export const AVATAR_MAX_BYTES = 5 * 1024 * 1024; // 5 MB
 
 const PRESIGNED_URL_TTL_SECONDS = 60;
+const DISPLAY_URL_TTL_SECONDS = 60 * 60; // 1 hour
 
 const s3 = new S3Client({ region: process.env.AWS_REGION });
 
@@ -88,4 +95,59 @@ export async function createAvatarUploadUrl(
   });
 
   return { uploadUrl, fileUrl: `${getPublicBaseUrl()}/${key}` };
+}
+
+/** A stored avatar: its canonical URL (saved with the profile) plus a
+ * short-lived signed URL the browser can display even if the bucket is private. */
+export interface AvatarImage {
+  fileUrl: string;
+  displayUrl: string;
+}
+
+function signedDisplayUrl(key: string): Promise<string> {
+  return getSignedUrl(
+    s3,
+    new GetObjectCommand({ Bucket: requireBucket(), Key: key }),
+    { expiresIn: DISPLAY_URL_TTL_SECONDS },
+  );
+}
+
+/** Signs a display URL for an avatar URL previously saved with the profile. */
+export async function getAvatarForUrl(
+  userId: string,
+  fileUrl: string,
+): Promise<AvatarImage | null> {
+  if (!isOwnAvatarUrl(userId, fileUrl)) return null;
+  const key = fileUrl.slice(getPublicBaseUrl().length + 1);
+  return { fileUrl, displayUrl: await signedDisplayUrl(key) };
+}
+
+/** Looks up the user's most recently uploaded avatar directly in S3. */
+export async function getLatestAvatar(userId: string): Promise<AvatarImage | null> {
+  const prefix = avatarKeyPrefix(userId);
+  let latest: { key: string; modified: number } | null = null;
+  let token: string | undefined;
+
+  do {
+    const page = await s3.send(
+      new ListObjectsV2Command({
+        Bucket: requireBucket(),
+        Prefix: prefix,
+        ContinuationToken: token,
+      }),
+    );
+    for (const obj of page.Contents ?? []) {
+      const modified = obj.LastModified?.getTime() ?? 0;
+      if (obj.Key && (!latest || modified > latest.modified)) {
+        latest = { key: obj.Key, modified };
+      }
+    }
+    token = page.IsTruncated ? page.NextContinuationToken : undefined;
+  } while (token);
+
+  if (!latest) return null;
+  return {
+    fileUrl: `${getPublicBaseUrl()}/${latest.key}`,
+    displayUrl: await signedDisplayUrl(latest.key),
+  };
 }

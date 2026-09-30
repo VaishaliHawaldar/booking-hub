@@ -67,7 +67,8 @@ AWS_SECRET_ACCESS_KEY=...
 AWS_S3_PUBLIC_URL=
 ```
 
-The IAM user needs `s3:PutObject` on `arn:aws:s3:::<bucket>/avatars/*`.
+The IAM user needs `s3:PutObject` and `s3:GetObject` on
+`arn:aws:s3:::<bucket>/avatars/*`, plus `s3:ListBucket` on `arn:aws:s3:::<bucket>`.
 
 The bucket needs a **CORS rule** so the browser can upload:
 
@@ -82,9 +83,10 @@ The bucket needs a **CORS rule** so the browser can upload:
 ]
 ```
 
-Images must also be publicly readable — either serve the bucket through
-CloudFront (recommended; set `AWS_S3_PUBLIC_URL`) or add a bucket policy
-allowing `s3:GetObject` on `avatars/*`.
+The bucket can stay **private**: when `/profile` loads, the server fetches the
+user's image from S3 (the saved `avatarUrl`, or — if the API has no profile —
+the most recently uploaded object under their `avatars/` prefix) and hands the
+browser a presigned GET URL valid for 1 hour.
 
 ## Features
 

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import ProfileForm from "@/components/profile-form";
 import { getCities, getProfile } from "@/lib/api";
+import { AvatarImage, getAvatarForUrl, getLatestAvatar } from "@/lib/s3";
 import { UserProfile } from "@/types";
 
 export default async function ProfilePage() {
@@ -16,13 +17,30 @@ export default async function ProfilePage() {
     getProfile(session.accessToken).catch(() => null),
   ]);
 
+  // Resolve the profile picture from S3. If the API has a saved profile, trust
+  // its avatarUrl (null means the user removed it); otherwise fall back to the
+  // latest image the user uploaded.
+  const userId = session.user.id!;
+  let avatar: AvatarImage | null = null;
+  try {
+    if (saved) {
+      avatar = saved.avatarUrl ? await getAvatarForUrl(userId, saved.avatarUrl) : null;
+    } else {
+      avatar = await getLatestAvatar(userId);
+    }
+  } catch (err) {
+    console.error("Failed to load profile image from S3", err);
+  }
+
   // First visit (no profile stored yet) — prefill from the Auth0 identity.
-  const profile: UserProfile = saved ?? {
-    name: session.user.name ?? "",
-    email: session.user.email ?? "",
-    phone: "",
-    cityId: "",
-    avatarUrl: null,
+  const profile: UserProfile = {
+    ...(saved ?? {
+      name: session.user.name ?? "",
+      email: session.user.email ?? "",
+      phone: "",
+      cityId: "",
+    }),
+    avatarUrl: avatar?.fileUrl ?? null,
   };
 
   return (
@@ -39,6 +57,7 @@ export default async function ProfilePage() {
       <ProfileForm
         profile={profile}
         cities={cities}
+        avatarDisplayUrl={avatar?.displayUrl ?? null}
         fallbackImage={session.user.image ?? null}
       />
     </main>
