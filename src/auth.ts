@@ -38,8 +38,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     // Expose the access token to the client/server via the session object.
     // (Auth0 access token, forwarded to the .NET Core Web API.)
+    // Also expose the Auth0 subject as session.user.id (used for S3 keys).
     async session({ session, token }) {
       session.accessToken = token.accessToken as string | undefined;
+      if (token.sub) session.user.id = token.sub;
       return session;
     },
   },

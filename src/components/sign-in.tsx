@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { signIn, signOut, useSession } from "next-auth/react";
 
@@ -25,13 +26,19 @@ export default function SignIn() {
     return <div className="h-9 w-24 animate-pulse rounded-lg bg-slate-800" />;
   }
 
-  // Signed in — show the user and a sign-out button.
+  // Signed in — show the user (linking to their profile) and a sign-out button.
   if (session?.user) {
     return (
       <div className="flex items-center gap-3">
-        <span className="hidden text-sm text-slate-300 sm:inline">
-          {session.user.name ?? session.user.email}
-        </span>
+        <Link
+          href="/profile"
+          className="text-sm text-slate-300 transition hover:text-indigo-300"
+        >
+          <span className="hidden sm:inline">
+            {session.user.name ?? session.user.email}
+          </span>
+          <span className="sm:hidden">Profile</span>
+        </Link>
         <button
           onClick={() => signOut()}
           className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-slate-800"

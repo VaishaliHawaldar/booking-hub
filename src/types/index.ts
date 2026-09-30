@@ -22,3 +22,11 @@ export interface Showtime {
   basePrice: number;
   totalSeats: number;
 }
+
+export interface UserProfile {
+  name: string;
+  email: string;
+  phone: string;
+  cityId: string;
+  avatarUrl: string | null;
+}
